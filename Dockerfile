@@ -1,7 +1,7 @@
 FROM php:8.2-fpm
 
 # Set working directory
-WORKDIR /var/www
+WORKDIR /var/www/src/app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm
 
-# Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -27,8 +26,7 @@ RUN pecl install redis && docker-php-ext-enable redis
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Fix permissions for Laravel
+# Permissions
 RUN chown -R www-data:www-data /var/www
 
-# Switch to www-data user (Laravel safe user)
 USER www-data
