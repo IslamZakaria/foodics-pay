@@ -7,9 +7,9 @@ services:
       dockerfile: Dockerfile
     container_name: foodics_pay_app
     restart: unless-stopped
-    working_dir: /var/www
+    working_dir: /var/www/src
     volumes:
-      - ./:/var/www
+      - ./src:/var/www/src
     networks:
       - foodics_network
     depends_on:
@@ -23,7 +23,7 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ./:/var/www
+      - ./src:/var/www/src
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     networks:
       - foodics_network
