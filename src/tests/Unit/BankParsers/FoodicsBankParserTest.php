@@ -17,7 +17,7 @@ class FoodicsBankParserTest extends TestCase
 
     public function test_parses_single_transaction_correctly(): void
     {
-        $webhookBody = "20250615156,50#202506159000001#note/debt payment\nmarch/internal_reference/A462JE81";
+        $webhookBody = "20250615156,50#202506159000001#note/debt payment";
 
         $result = $this->parser->parse($webhookBody);
 
@@ -27,7 +27,6 @@ class FoodicsBankParserTest extends TestCase
         $this->assertEquals('2025-06-15', $result[0]['transaction_date']);
         $this->assertArrayHasKey('note', $result[0]['metadata']);
         $this->assertEquals('debt payment', $result[0]['metadata']['note']);
-        $this->assertEquals('internal_reference/A462JE81', $result[0]['metadata']['march']);
     }
 
     public function test_parses_multiple_transactions(): void

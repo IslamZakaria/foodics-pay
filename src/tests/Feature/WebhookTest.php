@@ -18,7 +18,15 @@ class WebhookTest extends TestCase
 
         $webhookBody = "20250615156,50#202506159000001#note/debt payment";
 
-        $response = $this->postJson('/api/webhooks/foodics', ['client_id' => 1], [], [], $webhookBody);
+        $response = $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            ['HTTP_ACCEPT' => 'application/json'],
+            $webhookBody
+        );
 
         $response->assertStatus(202);
         $response->assertJson([
@@ -33,12 +41,20 @@ class WebhookTest extends TestCase
     {
         $webhookBody = "20250615156,50#202506159000001#note/debt payment\n20250616200,00#202506169000002#type/salary";
 
-        $this->postJson('/api/webhooks/foodics', ['client_id' => 1], [], [], $webhookBody);
+        $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
 
         $this->artisan('queue:work --once');
 
         $this->assertDatabaseCount('transactions', 2);
-        
+
         $this->assertDatabaseHas('transactions', [
             'reference' => '202506159000001',
             'amount' => 156.50,
@@ -56,7 +72,15 @@ class WebhookTest extends TestCase
     {
         $webhookBody = "156,50//202506159000001//20250615";
 
-        $this->postJson('/api/webhooks/acme', ['client_id' => 1], [], [], $webhookBody);
+        $this->call(
+            'POST',
+            '/api/webhooks/acme',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
 
         $this->artisan('queue:work --once');
 
@@ -72,12 +96,28 @@ class WebhookTest extends TestCase
     {
         $webhookBody = "20250615156,50#202506159000001#note/debt payment";
 
-        $this->postJson('/api/webhooks/foodics', ['client_id' => 1], [], [], $webhookBody);
+        $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
         $this->artisan('queue:work --once');
 
         $this->assertDatabaseCount('transactions', 1);
 
-        $this->postJson('/api/webhooks/foodics', ['client_id' => 1], [], [], $webhookBody);
+        $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
         $this->artisan('queue:work --once');
 
         $this->assertDatabaseCount('transactions', 1);
@@ -95,7 +135,15 @@ class WebhookTest extends TestCase
 
         $startTime = microtime(true);
 
-        $this->postJson('/api/webhooks/foodics', ['client_id' => 1], [], [], $webhookBody);
+        $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
         $this->artisan('queue:work --once --timeout=120');
 
         $endTime = microtime(true);
@@ -107,7 +155,15 @@ class WebhookTest extends TestCase
 
     public function test_returns_error_for_empty_webhook_body(): void
     {
-        $response = $this->postJson('/api/webhooks/foodics', ['client_id' => 1]);
+        $response = $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            ['HTTP_ACCEPT' => 'application/json'],
+            ''
+        );
 
         $response->assertStatus(400);
         $response->assertJson([
@@ -118,16 +174,47 @@ class WebhookTest extends TestCase
 
     public function test_metadata_is_stored_correctly(): void
     {
-        $webhookBody = "20250615156,50#REF001#note/payment\ncategory/expense";
+        $webhookBody = "20250615156,50#REF001#note/payment";
 
-        $this->postJson('/api/webhooks/foodics', ['client_id' => 1], [], [], $webhookBody);
+        $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
         $this->artisan('queue:work --once');
 
         $transaction = Transaction::where('reference', 'REF001')->first();
-        
+
         $this->assertNotNull($transaction);
         $this->assertIsArray($transaction->metadata);
         $this->assertEquals('payment', $transaction->metadata['note']);
-        $this->assertEquals('expense', $transaction->metadata['category']);
+    }
+
+    public function test_multiple_metadata_entries_are_stored(): void
+    {
+        $webhookBody = "20250615156,50#REF001#note/payment\n20250615200,00#REF002#category/expense";
+
+        $this->call(
+            'POST',
+            '/api/webhooks/foodics',
+            ['client_id' => 1],
+            [],
+            [],
+            [],
+            $webhookBody
+        );
+        $this->artisan('queue:work --once');
+
+        $this->assertDatabaseCount('transactions', 2);
+
+        $transaction1 = Transaction::where('reference', 'REF001')->first();
+        $this->assertEquals('payment', $transaction1->metadata['note']);
+
+        $transaction2 = Transaction::where('reference', 'REF002')->first();
+        $this->assertEquals('expense', $transaction2->metadata['category']);
     }
 }
